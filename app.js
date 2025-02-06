@@ -29,10 +29,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     if (!req.file) {
       return res.status(400).send('No se ha subido ningún archivo.');
     }
-
     const filePath = req.file.path;
     const data = await readCsvFile(filePath);
-
     console.log('Datos del CSV leídos:', data);
 
     for (const row of data) {
@@ -49,7 +47,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
           channel: slackUserId, // Usa el ID del usuario directamente
           text: message,
         });
-
         console.log(`Mensaje enviado a ${agentName} (ID: ${slackUserId}):`, message);
 
         // Almacena el ID del mensaje enviado para rastrear reacciones
@@ -95,7 +92,6 @@ function generateMessage(name, salary, absences, holidaysWorked) {
     : absences > 1
     ? `se registraron ${absences} faltas`
     : 'no se registraron faltas';
-
   const holidaysText = holidaysWorked === 1
     ? `trabajaste ${holidaysWorked} día feriado`
     : holidaysWorked > 1
@@ -105,24 +101,18 @@ function generateMessage(name, salary, absences, holidaysWorked) {
   return `
 :wave: ¡Buenos días, ${name}!
 Esperamos que te encuentres muy bien. Nos comunicamos contigo para compartir los detalles de tu salario correspondiente a este mes.
-
 *Salario a pagar este mes:* US$${salary}
-
 *Instrucciones para emitir la factura:*
 • La factura debe ser emitida antes del _penúltimo día hábil del mes_.
 • Al emitirla, incluye el tipo de cambio utilizado y el mes de referencia. Aquí tienes un ejemplo:
 \`\`\`
 Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 950)
 \`\`\`
-
 *Detalles adicionales:*
 • Faltas: ${absencesText}.
 • Días feriados trabajados: ${holidaysText}.
-
 *Si no hay observaciones pendientes*, puedes emitir la factura con los valores mencionados antes del penúltimo día hábil del mes.
-
 Por favor, confirma que has recibido este mensaje y estás de acuerdo con los valores reaccionando con un ✅ (*marca de verificación*).
-
 Gracias por tu atención y te deseamos un excelente día.
 _Atentamente,_  
 *Supervisión Corefone AR*
@@ -164,7 +154,6 @@ slackApp.event('file_shared', async ({ event }) => {
     const fileInfo = await slackApp.client.files.info({
       file: file_id,
     });
-
     console.log('Archivo compartido:', fileInfo.file);
 
     // Check if the file is a CSV
@@ -172,21 +161,17 @@ slackApp.event('file_shared', async ({ event }) => {
       // Download the CSV file
       const fileUrl = fileInfo.file.url_private_download;
       const filePath = path.join(__dirname, 'uploads', fileInfo.file.name);
-
       const response = await fetch(fileUrl, {
         headers: {
           Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
         },
       });
-
       const arrayBuffer = await response.arrayBuffer();
       fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
-
       console.log(`Archivo descargado: ${filePath}`);
 
       // Read the CSV file content
       const data = await readCsvFile(filePath);
-
       console.log('Datos del CSV leídos:', data);
 
       // Process the CSV data
@@ -204,7 +189,6 @@ slackApp.event('file_shared', async ({ event }) => {
             channel: slackUserId, // Usa el ID del usuario directamente
             text: message,
           });
-
           console.log(`Mensaje enviado a ${agentName} (ID: ${slackUserId}):`, message);
 
           // Almacena el ID del mensaje enviado para rastrear reacciones
@@ -231,11 +215,12 @@ slackApp.event('file_shared', async ({ event }) => {
   }
 });
 
-// Add routes to handle unhandled HTTP requests
+// Rota GET para responder aos pings do UptimeRobot
 app.get('/', (req, res) => {
   res.status(200).send('Bot is running!');
 });
 
+// Rota HEAD para evitar erros de requisições não tratadas
 app.head('/', (req, res) => {
   res.status(200).end();
 });
