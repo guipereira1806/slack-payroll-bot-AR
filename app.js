@@ -13,15 +13,6 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
-// Initialize the Slack app WITHOUT Socket Mode
-const slackApp = new App({
-  token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
-});
-
-// Store sent messages to track reactions
-const sentMessages = {};
-
 // Rota GET para responder aos pings do UptimeRobot
 app.get('/', (req, res) => {
   console.log('Requisição GET recebida na raiz (/)');
@@ -33,6 +24,15 @@ app.head('/', (req, res) => {
   console.log('Requisição HEAD recebida na raiz (/)');
   res.status(200).end();
 });
+
+// Initialize the Slack app WITHOUT Socket Mode
+const slackApp = new App({
+  token: process.env.SLACK_BOT_TOKEN,
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
+});
+
+// Store sent messages to track reactions
+const sentMessages = {};
 
 // Route to receive files via Slash Command
 app.post('/upload', upload.single('file'), async (req, res) => {
