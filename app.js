@@ -19,17 +19,14 @@ app.get('/', (req, res) => {
   res.status(200).send('Bot is running!');
 });
 
-// Rota HEAD para evitar erros de requisições não tratadas
-app.head('/', (req, res) => {
-  console.log('Requisição HEAD recebida na raiz (/)');
-  res.status(200).end();
-});
-
 // Initialize the Slack app WITHOUT Socket Mode
 const slackApp = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
 });
+
+// Middleware do Slack Bolt apenas para rotas específicas
+app.use('/slack/events', slackApp.receiver.expressMiddleware());
 
 // Store sent messages to track reactions
 const sentMessages = {};
@@ -115,7 +112,7 @@ function generateMessage(name, salary, absences, holidaysWorked) {
 Esperamos que te encuentres muy bien. Nos comunicamos contigo para compartir los detalles de tu salario correspondiente a este mes.
 *Salario a pagar este mes:* US$${salary}
 *Instrucciones para emitir la factura:*
-• La factura debe ser emitida antes del _penúltimo día hábil del mes_.
+• La factura debe ser emitida antes del _último día hábil del mes_.
 • Al emitirla, incluye el tipo de cambio utilizado y el mes de referencia. Aquí tienes un ejemplo:
 \`\`\`
 Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 950)
@@ -123,7 +120,7 @@ Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 9
 *Detalles adicionales:*
 • Faltas: ${absencesText}.
 • Días feriados trabajados: ${holidaysText}.
-*Si no hay observaciones pendientes*, puedes emitir la factura con los valores mencionados antes del penúltimo día hábil del mes.
+*Si no hay observaciones pendientes*, puedes emitir la factura con los valores mencionados antes del último día hábil del mes.
 Por favor, confirma que has recibido este mensaje y estás de acuerdo con los valores reaccionando con un ✅ (*marca de verificación*).
 Gracias por tu atención y te deseamos un excelente día.
 _Atentamente,_  
@@ -233,7 +230,7 @@ app.use((req, res) => {
   res.status(200).send('Bot is running!');
 });
 
-// Connect Bolt to the Express server
+// Start the Slack Bolt app
 slackApp.start(process.env.PORT || 3000).then(() => {
   console.log(`⚡️ Slack Bolt app is running on port ${process.env.PORT || 3000}!`);
 });
