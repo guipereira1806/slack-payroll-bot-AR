@@ -2,15 +2,13 @@
   "name": "slack-corefone-payroll-bot-br",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "@slack/bolt": "^4.2.0",
     "csv-parser": "^3.2.0",
