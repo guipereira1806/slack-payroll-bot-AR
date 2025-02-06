@@ -24,11 +24,13 @@ const sentMessages = {};
 
 // Rota GET para responder aos pings do UptimeRobot
 app.get('/', (req, res) => {
+  console.log('Requisição GET recebida na raiz (/)');
   res.status(200).send('Bot is running!');
 });
 
 // Rota HEAD para evitar erros de requisições não tratadas
 app.head('/', (req, res) => {
+  console.log('Requisição HEAD recebida na raiz (/)');
   res.status(200).end();
 });
 
@@ -227,6 +229,7 @@ slackApp.event('file_shared', async ({ event }) => {
 
 // Rota de fallback para garantir que o servidor responda à raiz
 app.use((req, res) => {
+  console.log(`Rota de fallback acionada para: ${req.url}`);
   res.status(200).send('Bot is running!');
 });
 
