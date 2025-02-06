@@ -13,20 +13,11 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
-// Rota GET para responder aos pings do UptimeRobot
-app.get('/', (req, res) => {
-  console.log('Requisição GET recebida na raiz (/)');
-  res.status(200).send('Bot is running!');
-});
-
 // Initialize the Slack app WITHOUT Socket Mode
 const slackApp = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
 });
-
-// Middleware do Slack Bolt apenas para rotas específicas
-app.use('/slack/events', slackApp.receiver.expressMiddleware());
 
 // Store sent messages to track reactions
 const sentMessages = {};
@@ -224,10 +215,9 @@ slackApp.event('file_shared', async ({ event }) => {
   }
 });
 
-// Rota de fallback para garantir que o servidor responda à raiz
-app.use((req, res) => {
-  console.log(`Rota de fallback acionada para: ${req.url}`);
-  res.status(200).send('Bot is running!');
+// Middleware do Slack Bolt apenas para rotas específicas
+app.use('/slack/events', (req, res, next) => {
+  slackApp.receiver.requestListener()(req, res, next);
 });
 
 // Start the Slack Bolt app
