@@ -22,6 +22,16 @@ const slackApp = new App({
 // Store sent messages to track reactions
 const sentMessages = {};
 
+// Rota GET para responder aos pings do UptimeRobot
+app.get('/', (req, res) => {
+  res.status(200).send('Bot is running!');
+});
+
+// Rota HEAD para evitar erros de requisições não tratadas
+app.head('/', (req, res) => {
+  res.status(200).end();
+});
+
 // Route to receive files via Slash Command
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
@@ -215,14 +225,9 @@ slackApp.event('file_shared', async ({ event }) => {
   }
 });
 
-// Rota GET para responder aos pings do UptimeRobot
-app.get('/', (req, res) => {
+// Rota de fallback para garantir que o servidor responda à raiz
+app.use((req, res) => {
   res.status(200).send('Bot is running!');
-});
-
-// Rota HEAD para evitar erros de requisições não tratadas
-app.head('/', (req, res) => {
-  res.status(200).end();
 });
 
 // Connect Bolt to the Express server
@@ -232,5 +237,4 @@ slackApp.start(process.env.PORT || 3000).then(() => {
 
 // Start the Express server
 app.listen(process.env.PORT || 3000, () => {
-  console.log(`🚀 Express server is running on port ${process.env.PORT || 3000}!`);
-});
+  console.log(`🚀
