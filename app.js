@@ -115,7 +115,7 @@ function generateMessage(name, salary, absences, holidaysWorked) {
 Esperamos que te encuentres muy bien. Nos comunicamos contigo para compartir los detalles de tu salario correspondiente a este mes.
 *Salario a pagar este mes:* US$${salary}
 *Instrucciones para emitir la factura:*
-• La factura debe ser emitida antes del _penúltimo día hábil del mes_.
+• La factura debe ser emitida antes del _último día hábil del mes_.
 • Al emitirla, incluye el tipo de cambio utilizado y el mes de referencia. Aquí tienes un ejemplo:
 \`\`\`
 Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 950)
@@ -123,7 +123,7 @@ Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 9
 *Detalles adicionales:*
 • Faltas: ${absencesText}.
 • Días feriados trabajados: ${holidaysText}.
-*Si no hay observaciones pendientes*, puedes emitir la factura con los valores mencionados antes del último día hábil del mes.
+*Si no hay observaciones pendientes*, puedes emitir la factura con los valores mencionados antes del _último día hábil del mes_.
 Por favor, confirma que has recibido este mensaje y estás de acuerdo con los valores reaccionando con un ✅ (*marca de verificación*).
 Gracias por tu atención y te deseamos un excelente día.
 _Atentamente,_  
