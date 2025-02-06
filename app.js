@@ -121,7 +121,7 @@ Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 9
 
 *Si no hay observaciones pendientes*, puedes emitir la factura con los valores mencionados antes del penúltimo día hábil del mes.
 
-Por favor, confirma que has recibido este mensaje y estás de acuerdo con los valores reaccionando con un ✅ (*marca de verificación*).
+Por favor, confirma que has recibido este mensaje y estás de acuerdo con los valores reaccionando con un ✅ (*check*).
 
 Gracias por tu atención y te deseamos un excelente día.
 _Atentamente,_  
