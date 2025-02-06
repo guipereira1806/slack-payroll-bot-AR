@@ -9,21 +9,15 @@ const path = require('path');
 // Importa o fetch (apenas se o Node.js for < 18.x)
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-// Cria a pasta 'uploads' se ela não existir
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
+// Cria o servidor Express
+const app = express();
+const upload = multer({ dest: 'uploads/' });
 
-// Inicializa o app do Slack
+// Inicializa o app do Slack SEM Socket Mode
 const slackApp = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
 });
-
-// Inicializa o servidor Express
-const app = express();
-const upload = multer({ dest: 'uploads/' });
 
 // Armazena as mensagens enviadas para rastrear reações
 const sentMessages = {};
@@ -185,7 +179,7 @@ slackApp.event('file_shared', async ({ event }) => {
     if (fileInfo.file.filetype === 'csv') {
       // Baixa o arquivo CSV
       const fileUrl = fileInfo.file.url_private_download;
-      const filePath = path.join(uploadDir, fileInfo.file.name);
+      const filePath = path.join(__dirname, 'uploads', fileInfo.file.name);
 
       const response = await fetch(fileUrl, {
         headers: {
@@ -245,8 +239,21 @@ slackApp.event('file_shared', async ({ event }) => {
   }
 });
 
-// Inicia o servidor Express e o Slack Bolt
-(async () => {
-  await slackApp.start(process.env.PORT || 3000);
+// Adiciona rotas para evitar erros de requisições não tratadas
+app.get('/', (req, res) => {
+  res.status(200).send('Bot is running!');
+});
+
+app.head('/', (req, res) => {
+  res.status(200).end();
+});
+
+// Conecta o Bolt ao servidor Express
+slackApp.start(process.env.PORT || 3000).then(() => {
   console.log(`⚡️ Slack Bolt app is running on port ${process.env.PORT || 3000}!`);
-})();
+});
+
+// Inicia o servidor Express
+app.listen(process.env.PORT || 3000, () => {
+  console.log(`🚀 Express server is running on port ${process.env.PORT || 3000}!`);
+});
