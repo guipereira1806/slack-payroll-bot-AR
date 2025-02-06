@@ -237,4 +237,5 @@ slackApp.start(process.env.PORT || 3000).then(() => {
 
 // Start the Express server
 app.listen(process.env.PORT || 3000, () => {
- console.log(`🚀 Express server is running on port ${process.env.PORT || 3000}!`);
+  console.log(`🚀 Express server is running on port ${process.env.PORT || 3000}!`);
+});
