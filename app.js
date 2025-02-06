@@ -13,6 +13,16 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
+// Rota GET para responder aos pings do Render
+app.get('/', (req, res) => {
+  res.status(200).send('Bot is running!');
+});
+
+// Rota HEAD para evitar erros de requisições não tratadas
+app.head('/', (req, res) => {
+  res.status(200).end();
+});
+
 // Initialize the Slack app WITHOUT Socket Mode
 const slackApp = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -103,7 +113,7 @@ function generateMessage(name, salary, absences, holidaysWorked) {
 Esperamos que te encuentres muy bien. Nos comunicamos contigo para compartir los detalles de tu salario correspondiente a este mes.
 *Salario a pagar este mes:* US$${salary}
 *Instrucciones para emitir la factura:*
-• La factura debe ser emitida antes del _último día hábil del mes_.
+• La factura debe ser emitida antes *del último día hábil del mes.*
 • Al emitirla, incluye el tipo de cambio utilizado y el mes de referencia. Aquí tienes un ejemplo:
 \`\`\`
 Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 950)
@@ -114,7 +124,7 @@ Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 9
 *Si no hay observaciones pendientes*, puedes emitir la factura con los valores mencionados antes del último día hábil del mes.
 Por favor, confirma que has recibido este mensaje y estás de acuerdo con los valores reaccionando con un ✅ (*marca de verificación*).
 Gracias por tu atención y te deseamos un excelente día.
-_Atentamente,_  
+Atentamente,  
 *Supervisión Corefone AR*
 `;
 }
