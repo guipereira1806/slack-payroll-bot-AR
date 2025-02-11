@@ -109,7 +109,7 @@ function generateMessage(name, salary, absences, holidaysWorked) {
     : 'no trabajaste días feriados';
 
   return `
-:wave: ¡Buenos días, ${name}!
+:wave: ¡Hola, ${name}!
 Esperamos que te encuentres muy bien. Nos comunicamos contigo para compartir los detalles de tu salario correspondiente a este mes.
 *Salario a pagar este mes:* US$${salary}
 *Instrucciones para emitir la factura:*
