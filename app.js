@@ -125,7 +125,7 @@ Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 9
 Por favor, confirma que has recibido este mensaje y estás de acuerdo con los valores reaccionando con un ✅ (*marca de verificación*).
 Gracias por tu atención y te deseamos un excelente día.
 Atentamente,  
-*Supervisión Corefone AR*
+*Supervisión Corefone AR/LATAM*
 `;
 }
 
