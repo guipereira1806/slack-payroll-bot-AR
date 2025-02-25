@@ -5,86 +5,26 @@ const multer = require('multer');
 const fs = require('fs');
 const csv = require('csv-parser');
 const path = require('path');
+const fetch = require('node-fetch'); // Importar fetch correctamente
 
-// Import fetch (only if Node.js version is < 18.x)
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
-// Create the Express server
+// Configurar Express
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
-// Rota GET para responder aos pings do Render
-app.get('/', (req, res) => {
-  res.status(200).send('Bot is running!');
-});
-
-// Rota HEAD para evitar erros de requisições não tratadas
-app.head('/', (req, res) => {
-  res.status(200).end();
-});
-
-// Initialize the Slack app WITHOUT Socket Mode
+// Inicializar Slack App
 const slackApp = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
 });
 
-// Store sent messages to track reactions
-const sentMessages = {};
+const sentMessages = {}; // Para rastrear mensajes enviados
 
-// Route to receive files via Slash Command
-app.post('/upload', upload.single('file'), async (req, res) => {
-  try {
-    // Check if the request body contains a file
-    if (!req.file) {
-      return res.status(400).send('No se ha subido ningún archivo.');
-    }
-    const filePath = req.file.path;
-    const data = await readCsvFile(filePath);
-    console.log('Datos del CSV leídos:', data);
+// Ruta para verificar que el bot está en ejecución
+app.get('/', (req, res) => res.status(200).send('Bot is running!'));
+app.head('/', (req, res) => res.status(200).end());
 
-    for (const row of data) {
-      const slackUserId = row['Slack User']; // Columna con el ID de usuario en Slack
-      const salary = row['Salary']; // Columna con el salario
-      const agentName = row['Name']; // Columna con el nombre del agente
-      const absences = row['Absences'] || 0; // Columna con el número de faltas
-      const holidaysWorked = row['Holidays Worked'] || 0; // Columna con días feriados trabajados
-
-      if (slackUserId && salary) {
-        // Enviar mensaje directo al agente
-        const message = generateMessage(agentName, salary, absences, holidaysWorked);
-        const result = await slackApp.client.chat.postMessage({
-          channel: slackUserId, // Usa el ID del usuario directamente
-          text: message,
-        });
-        console.log(`Mensaje enviado a ${agentName} (ID: ${slackUserId}):`, message);
-
-        // Almacena el ID del mensaje enviado para rastrear reacciones
-        sentMessages[result.ts] = {
-          user: slackUserId,
-          name: agentName,
-        };
-      }
-    }
-
-    // Responde al canal privado con un checkmark
-    const channelId = req.body.channel_id;
-    await slackApp.client.chat.postMessage({
-      channel: channelId,
-      text: 'Planilla procesada! ✅',
-    });
-
-    // Elimina el archivo después de procesarlo
-    fs.unlinkSync(filePath);
-    res.status(200).send('Planilla procesada exitosamente!');
-  } catch (error) {
-    console.error('Error al procesar la planilla:', error);
-    res.status(500).send('Error al procesar la planilla.');
-  }
-});
-
-// Function to read the CSV file
-function readCsvFile(filePath) {
+// Función para leer archivos CSV
+const readCsvFile = (filePath) => {
   return new Promise((resolve, reject) => {
     const data = [];
     fs.createReadStream(filePath)
@@ -93,149 +33,68 @@ function readCsvFile(filePath) {
       .on('end', () => resolve(data))
       .on('error', (error) => reject(error));
   });
-}
+};
 
-// Function to generate the personalized message in Spanish
-function generateMessage(name, salary, absences, holidaysWorked) {
-  const absencesText = absences === 1
-    ? `se registró ${absences} falta`
-    : absences > 1
-    ? `se registraron ${absences} faltas`
-    : 'no se registraron faltas';
-  const holidaysText = holidaysWorked === 1
-    ? `trabajaste ${holidaysWorked} día feriado`
-    : holidaysWorked > 1
-    ? `trabajaste ${holidaysWorked} días feriados`
-    : 'no trabajaste días feriados';
-
+// Función para generar el mensaje
+const generateMessage = (name, salary, absences, holidaysWorked) => {
+  const absencesText = absences > 1 ? `se registraron ${absences} faltas` : absences === 1 ? `se registró ${absences} falta` : 'no se registraron faltas';
+  const holidaysText = holidaysWorked > 1 ? `trabajaste ${holidaysWorked} días feriados` : holidaysWorked === 1 ? `trabajaste ${holidaysWorked} día feriado` : 'no trabajaste días feriados';
   return `
 :wave: ¡Hola, ${name}!
 Esperamos que te encuentres muy bien. Nos comunicamos contigo para compartir los detalles de tu salario correspondiente a este mes.
 *Salario a pagar este mes:* US$${salary}
-*Instrucciones para emitir la factura:*
-• La factura debe ser emitida antes *del último día hábil del mes.*
-• Al emitirla, incluye el tipo de cambio utilizado y el mes de referencia. Aquí tienes un ejemplo:
-\`\`\`
-Servicios <mes> - Atención al cliente + tipo de cambio aplicado (US$ 1 = ARS$ 950)
-\`\`\`
 *Detalles adicionales:*
 • Faltas: ${absencesText}.
 • Días feriados trabajados: ${holidaysText}.
-*Si no hay observaciones pendientes*, puedes emitir la factura con los valores mencionados antes del último día hábil del mes.
-Por favor, confirma que has recibido este mensaje y estás de acuerdo con los valores reaccionando con un ✅ (*marca de verificación*).
-Gracias por tu atención y te deseamos un excelente día.
-Atentamente,  
-*Supervisión Corefone AR/LATAM*
-`;
-}
+Por favor, confirma con un ✅ si estás de acuerdo.
+*Supervisión Corefone AR/LATAM*`;
+};
 
-// Monitor reactions to messages
+// Ruta para procesar archivos CSV
+app.post('/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).send('No se ha subido ningún archivo.');
+  try {
+    const data = await readCsvFile(req.file.path);
+    for (const row of data) {
+      const { 'Slack User': slackUserId, Salary: salary, Name: agentName, Absences: absences = 0, 'Holidays Worked': holidaysWorked = 0 } = row;
+      if (slackUserId && salary) {
+        const message = generateMessage(agentName, salary, absences, holidaysWorked);
+        const result = await slackApp.client.chat.postMessage({ channel: slackUserId, text: message });
+        sentMessages[result.ts] = { user: slackUserId, name: agentName };
+      }
+    }
+    await slackApp.client.chat.postMessage({ channel: req.body.channel_id, text: 'Planilla procesada! ✅' });
+    fs.unlinkSync(req.file.path);
+    res.status(200).send('Planilla procesada exitosamente!');
+  } catch (error) {
+    console.error('Error al procesar la planilla:', error);
+    res.status(500).send('Error al procesar la planilla.');
+  }
+});
+
+// Monitoreo de reacciones
 slackApp.event('reaction_added', async ({ event }) => {
-  const { reaction, item, user } = event;
-
-  // Check if the reaction is a ✅ and if the message is correct
-  if (reaction === 'white_check_mark' && sentMessages[item.ts]) {
-    const { user: slackUserId, name } = sentMessages[item.ts];
+  if (event.reaction === 'white_check_mark' && sentMessages[event.item.ts]) {
+    const { user, name } = sentMessages[event.item.ts];
     await slackApp.client.chat.postMessage({
       channel: process.env.CHANNEL_ID,
-      text: `Agente ${name} (@${slackUserId}) ha confirmado la recepción del salario y está de acuerdo con los valores.`,
+      text: `Agente ${name} (@${user}) confirmó la recepción del salario.`,
     });
   }
 });
 
-// Listener for messages in DMs
+// Listener de mensajes en DM
 slackApp.event('message', async ({ event, say }) => {
   const { channel, text, user } = event;
-
-  // Check if the message was sent in a DM
-  const conversationType = await slackApp.client.conversations.info({ channel });
-  if (conversationType.channel.is_im) {
-    console.log(`Mensaje recibido de ${user} en DM: ${text}`);
-    await say(`¡Hola! He recibido tu mensaje: "${text}". Si necesitas algo, ¡estoy aquí!`);
+  const conversation = await slackApp.client.conversations.info({ channel });
+  if (conversation.channel.is_im) {
+    console.log(`Mensaje de ${user}: ${text}`);
+    await say(`¡Hola! He recibido tu mensaje: "${text}".`);
   }
 });
 
-// Listener for file uploads
-slackApp.event('file_shared', async ({ event }) => {
-  try {
-    const { file_id, channel_id } = event;
-
-    // Get file information
-    const fileInfo = await slackApp.client.files.info({
-      file: file_id,
-    });
-    console.log('Archivo compartido:', fileInfo.file);
-
-    // Check if the file is a CSV
-    if (fileInfo.file.filetype === 'csv') {
-      // Download the CSV file
-      const fileUrl = fileInfo.file.url_private_download;
-      const filePath = path.join(__dirname, 'uploads', fileInfo.file.name);
-      const response = await fetch(fileUrl, {
-        headers: {
-          Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
-        },
-      });
-      const arrayBuffer = await response.arrayBuffer();
-      fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
-      console.log(`Archivo descargado: ${filePath}`);
-
-      // Read the CSV file content
-      const data = await readCsvFile(filePath);
-      console.log('Datos del CSV leídos:', data);
-
-      // Process the CSV data
-      for (const row of data) {
-        const slackUserId = row['Slack User']; // Columna con el ID de usuario en Slack
-        const salary = row['Salary']; // Columna con el salario
-        const agentName = row['Name']; // Columna con el nombre del agente
-        const absences = row['Absences'] || 0; // Columna con el número de faltas
-        const holidaysWorked = row['Holidays Worked'] || 0; // Columna con días feriados trabajados
-
-        if (slackUserId && salary) {
-          // Enviar mensaje directo al agente
-          const message = generateMessage(agentName, salary, absences, holidaysWorked);
-          const result = await slackApp.client.chat.postMessage({
-            channel: slackUserId, // Usa el ID del usuario directamente
-            text: message,
-          });
-          console.log(`Mensaje enviado a ${agentName} (ID: ${slackUserId}):`, message);
-
-          // Almacena el ID del mensaje enviado para rastrear reacciones
-          sentMessages[result.ts] = {
-            user: slackUserId,
-            name: agentName,
-          };
-        }
-      }
-
-      // Responde al canal privado con un checkmark
-      await slackApp.client.chat.postMessage({
-        channel: channel_id,
-        text: 'Planilla procesada! ✅',
-      });
-
-      // Elimina el archivo después de procesarlo
-      fs.unlinkSync(filePath);
-    } else {
-      console.log('El archivo compartido no es un CSV.');
-    }
-  } catch (error) {
-    console.error('Error al procesar el archivo compartido:', error);
-  }
-});
-
-// Middleware do Slack Bolt apenas para rotas específicas
-app.use('/slack/events', (req, res, next) => {
-  slackApp.receiver.requestListener()(req, res, next);
-});
-
-// Start the Slack Bolt app
-slackApp.start(process.env.PORT || 3000).then(() => {
-  console.log(`⚡️ Slack Bolt app is running on port ${process.env.PORT || 3000}!`);
-});
-
-// Start the Express server
-app.listen(process.env.PORT || 3000, () => {
-  console.log(`🚀 Express server is running on port ${process.env.PORT || 3000}!`);
-});
+// Iniciar servidores
+(async () => {
+  await slackApp.start(process.env.PORT || 3000);
+  app.listen(process.env.PORT || 3000, () => console.log(`🚀 Servidor activo en puerto ${process.env.PORT || 3000}`));
+})();
